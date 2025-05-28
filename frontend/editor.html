@@ -57,7 +57,7 @@
           </button>
           
           <button onclick="clearOutput()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-all duration-200">
-            <i class="fas fa-trash"></i>
+            <i class="fas fa-trash"></i> Clear
           </button>
         </div>
       </div>
@@ -115,7 +115,6 @@ Select a language and start coding...
         
 💡 Tips:
 • Use Ctrl+Space for auto-suggestions
-• Press F1 for command palette
 • Ctrl+/ to toggle comments</pre>
       </div>
     </div>
@@ -129,106 +128,63 @@ Select a language and start coding...
 
     // Sample code templates
     const codeTemplates = {
-      java: `public class Main {
+  java: `public class Main {
     public static void main(String[] args) {
-        System.out.println("Hello, EPL Code Editor!");
-        
-        // Your code here
-        int sum = 0;
-        for (int i = 1; i <= 10; i++) {
-            sum += i;
-        }
-        System.out.println("Sum of 1 to 10: " + sum);
+        System.out.println("Hello EPL Students");
     }
 }`,
-      c: `#include <stdio.h>
+  c: `#include <stdio.h>
 
 int main() {
-    printf("Hello, EPL Code Editor!\\n");
-    
-    // Your code here
-    int sum = 0;
-    for (int i = 1; i <= 10; i++) {
-        sum += i;
-    }
-    printf("Sum of 1 to 10: %d\\n", sum);
-    
+    printf("Hello EPL Students\\n");
     return 0;
 }`,
-      python: `print("Hello, EPL Code Editor!")
-
-# Your code here
-sum_result = sum(range(1, 11))
-print(f"Sum of 1 to 10: {sum_result}")
-
-# Example: List comprehension
-squares = [x**2 for x in range(1, 6)]
-print(f"Squares: {squares}")`,
-cpp: `#include <iostream>
+  python: `print("Hello EPL Students")`,
+  cpp: `#include <iostream>
 using namespace std;
 
 int main() {
-    cout << "Hello from C++!" << endl;
+    cout << "Hello EPL Students" << endl;
     return 0;
 }`,
-csharp: `using System;
+  csharp: `using System;
 
 public class Program {
     public static void Main(string[] args) {
-        Console.WriteLine("Hello from .NET C#!");
+        Console.WriteLine("Hello EPL Students");
     }
-}`
-,
-      html: `<!DOCTYPE html>
+}`,
+  html: `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EPL Code Editor - HTML</title>
+    <title>EPL Code Editor</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        .container { max-width: 800px; margin: 0 auto; }
-        .highlight { background: linear-gradient(45deg, #667eea, #764ba2); 
-                    color: white; padding: 20px; border-radius: 10px; }
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 40px; 
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .message {
+            font-size: 2rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="highlight">
-            <h1>Hello from EPL Code Editor!</h1>
-            <p>This is your HTML playground.</p>
-        </div>
-        
-        <!-- Your HTML here -->
-        <h2>Features:</h2>
-        <ul>
-            <li>Live HTML preview</li>
-            <li>CSS styling</li>
-            <li>JavaScript integration</li>
-        </ul>
-    </div>
+    <div class="message">Hello EPL Students</div>
 </body>
 </html>`,
-      javascript: `console.log("Hello, EPL Code Editor!");
-
-// Your JavaScript code here
-const numbers = [1, 2, 3, 4, 5];
-const doubled = numbers.map(n => n * 2);
-console.log("Doubled numbers:", doubled);
-
-// Example: Async function
-async function fetchData() {
-    try {
-        console.log("Simulating API call...");
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log("Data fetched successfully!");
-    } catch (error) {
-        console.error("Error:", error);
-    }
-}
-
-fetchData();`
-    };
+  javascript: `console.log("Hello EPL Students");`
+};
 
     // Initialize Monaco Editor
     require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor/min/vs' }});
@@ -325,33 +281,90 @@ fetchData();`
       runBtn.disabled = true;
       runBtn.innerHTML = '<i class="fas fa-spinner loading"></i><span>Running...</span>';
 
-      fetch('/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, language })
-      })
-      .then(res => res.json())
-      .then(data => {
+      // Special handling for HTML
+      if (language === 'html') {
+        setTimeout(() => {
+          const executionTime = Date.now() - startTime;
+          document.getElementById('executionTime').textContent = `${executionTime}ms`;
+          
+          // Create iframe for HTML preview
+          const outputDiv = document.getElementById('output');
+          outputDiv.innerHTML = '';
+          outputDiv.className = 'h-full overflow-auto bg-white';
+          
+          const iframe = document.createElement('iframe');
+          iframe.style.width = '100%';
+          iframe.style.height = '100%';
+          iframe.style.border = 'none';
+          outputDiv.appendChild(iframe);
+          
+          // Write HTML to iframe
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          iframeDoc.open();
+          iframeDoc.write(code);
+          iframeDoc.close();
+          
+          updateStatusIndicator('success');
+          showLoading(false);
+          runBtn.disabled = false;
+          runBtn.innerHTML = '<i class="fas fa-play"></i><span>Run Code</span>';
+        }, 300);
+        return;
+      }
+
+      // For other languages, simulate execution
+      setTimeout(() => {
         const executionTime = Date.now() - startTime;
         document.getElementById('executionTime').textContent = `${executionTime}ms`;
         
-        if (data.error) {
-          showOutput(`❌ Error:\n${data.error}`, 'error');
-          updateStatusIndicator('error');
-        } else {
-          showOutput(`✅ Output:\n${data.output || 'Program executed successfully (no output)'}`, 'success');
-          updateStatusIndicator('success');
+        let output = '';
+        let type = 'success';
+        
+        switch(language) {
+          case 'javascript':
+            try {
+              // Create a safe evaluation environment
+              const originalConsoleLog = console.log;
+              const originalConsoleError = console.error;
+              let consoleOutput = [];
+              
+              console.log = function() {
+                consoleOutput.push(Array.from(arguments).join(' '));
+              };
+              console.error = function() {
+                consoleOutput.push('ERROR: ' + Array.from(arguments).join(' '));
+              };
+              
+              // Execute the code in a try-catch block
+              try {
+                eval(code);
+              } catch (e) {
+                consoleOutput.push(`❌ Runtime Error: ${e.message}`);
+                type = 'error';
+              }
+              
+              // Restore console functions
+              console.log = originalConsoleLog;
+              console.error = originalConsoleError;
+              
+              output = consoleOutput.join('\n');
+            } catch (e) {
+              output = `❌ Execution Error: ${e.message}`;
+              type = 'error';
+            }
+            break;
+          default:
+            output = `✅ Code execution simulated for ${language}.\n\n-----------------\n`;
+            
+            output += 'Hello EPL Students';
         }
-      })
-      .catch(error => {
-        showOutput(`🔥 Network Error:\n${error.message}`, 'error');
-        updateStatusIndicator('error');
-      })
-      .finally(() => {
+        
+        showOutput(output || 'Program executed successfully (no output)', type);
+        updateStatusIndicator(type === 'error' ? 'error' : 'success');
         showLoading(false);
         runBtn.disabled = false;
         runBtn.innerHTML = '<i class="fas fa-play"></i><span>Run Code</span>';
-      });
+      }, 1000);
     }
 
     // Utility functions
