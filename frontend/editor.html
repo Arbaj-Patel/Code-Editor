@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EPL Code Editor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    html, body { height: 100vh; margin: 0; overflow: hidden; }
+    .editor-container { height: calc(100vh - 80px); }
+    .output-container { height: calc(100vh - 80px); }
+    .resizer { 
+      width: 4px; 
+      background: #374151; 
+      cursor: col-resize; 
+      transition: background-color 0.2s;
+    }
+    .resizer:hover { background: #6366f1; }
+    .loading { animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+  </style>
+</head>
+<body class="bg-gray-900 text-white font-mono">
+  <!-- Header -->
+  <header class="gradient-bg shadow-lg">
+    <div class="container mx-auto px-6 py-4">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+            <i class="fas fa-code text-purple-600 text-xl"></i>
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold text-white">EPL Code Editor</h1>
+            <p class="text-purple-100 text-sm">Enhanced Programming Language Editor</p>
+          </div>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-2">
+            <i class="fas fa-code-branch text-purple-200"></i>
+            <select id="language" class="bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+              <option value="java">Java</option>
+              <option value="c"> C</option>
+              <option value="python">Python</option>
+              <option value="cpp"> C++</option>
+              <option value="csharp">  C#</option>
+              <option value="html"> HTML</option>
+              <option value="javascript"> JavaScript</option>
+            </select>
+          </div>
+          
+          <button onclick="submitCode()" id="runBtn" class="bg-green-600 hover:bg-green-700 px-6 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl">
+            <i class="fas fa-play"></i>
+            <span>Run Code</span>
+          </button>
+          
+          <button onclick="clearOutput()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-all duration-200">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="flex h-full">
+    <!-- Code Editor Panel -->
+    <div class="flex-1 bg-gray-900 border-r border-gray-700">
+      <div class="bg-gray-800 px-4 py-2 border-b border-gray-700 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i class="fas fa-file-code text-blue-400"></i>
+          <span class="text-sm font-medium">Code Editor</span>
+          <span id="languageIndicator" class="bg-blue-600 text-xs px-2 py-1 rounded">Java</span>
+        </div>
+        <div class="flex items-center space-x-2 text-xs text-gray-400">
+          <i class="fas fa-lightbulb"></i>
+          <span>Ctrl+Space for suggestions</span>
+        </div>
+      </div>
+      <div id="editor-container" class="editor-container"></div>
+    </div>
+
+    <!-- Resizer -->
+    <div class="resizer" id="resizer"></div>
+
+    <!-- Output Panel -->
+    <div class="flex-1 bg-gray-900 flex flex-col">
+      <div class="bg-gray-800 px-4 py-2 border-b border-gray-700 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i class="fas fa-terminal text-green-400"></i>
+          <span class="text-sm font-medium">Output</span>
+          <div id="statusIndicator" class="w-2 h-2 bg-gray-500 rounded-full"></div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span id="executionTime" class="text-xs text-gray-400"></span>
+          <button onclick="copyOutput()" class="text-gray-400 hover:text-white transition-colors">
+            <i class="fas fa-copy"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div class="output-container flex-1 relative">
+        <div id="loadingOverlay" class="absolute inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center hidden">
+          <div class="text-center">
+            <i class="fas fa-cog loading text-3xl text-purple-500 mb-2"></i>
+            <p class="text-gray-300">Executing code...</p>
+          </div>
+        </div>
+        
+        <pre id="output" class="h-full p-4 overflow-auto text-sm bg-black text-green-400 font-mono whitespace-pre-wrap">Ready to run your code! 🚀
+        
+Select a language and start coding...
+        
+💡 Tips:
+• Use Ctrl+Space for auto-suggestions
+• Press F1 for command palette
+• Ctrl+/ to toggle comments</pre>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor/min/vs/loader.js"></script>
+  <script>
+    let editor;
+    let isResizing = false;
+    let startTime;
+
+    // Sample code templates
+    const codeTemplates = {
+      java: `public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello, EPL Code Editor!");
+        
+        // Your code here
+        int sum = 0;
+        for (int i = 1; i <= 10; i++) {
+            sum += i;
+        }
+        System.out.println("Sum of 1 to 10: " + sum);
+    }
+}`,
+      c: `#include <stdio.h>
+
+int main() {
+    printf("Hello, EPL Code Editor!\\n");
+    
+    // Your code here
+    int sum = 0;
+    for (int i = 1; i <= 10; i++) {
+        sum += i;
+    }
+    printf("Sum of 1 to 10: %d\\n", sum);
+    
+    return 0;
+}`,
+      python: `print("Hello, EPL Code Editor!")
+
+# Your code here
+sum_result = sum(range(1, 11))
+print(f"Sum of 1 to 10: {sum_result}")
+
+# Example: List comprehension
+squares = [x**2 for x in range(1, 6)]
+print(f"Squares: {squares}")`,
+cpp: `#include <iostream>
+using namespace std;
+
+int main() {
+    cout << "Hello from C++!" << endl;
+    return 0;
+}`,
+csharp: `using System;
+
+public class Program {
+    public static void Main(string[] args) {
+        Console.WriteLine("Hello from .NET C#!");
+    }
+}`
+,
+      html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPL Code Editor - HTML</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .highlight { background: linear-gradient(45deg, #667eea, #764ba2); 
+                    color: white; padding: 20px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="highlight">
+            <h1>Hello from EPL Code Editor!</h1>
+            <p>This is your HTML playground.</p>
+        </div>
+        
+        <!-- Your HTML here -->
+        <h2>Features:</h2>
+        <ul>
+            <li>Live HTML preview</li>
+            <li>CSS styling</li>
+            <li>JavaScript integration</li>
+        </ul>
+    </div>
+</body>
+</html>`,
+      javascript: `console.log("Hello, EPL Code Editor!");
+
+// Your JavaScript code here
+const numbers = [1, 2, 3, 4, 5];
+const doubled = numbers.map(n => n * 2);
+console.log("Doubled numbers:", doubled);
+
+// Example: Async function
+async function fetchData() {
+    try {
+        console.log("Simulating API call...");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log("Data fetched successfully!");
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
+
+fetchData();`
+    };
+
+    // Initialize Monaco Editor
+    require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor/min/vs' }});
+    require(['vs/editor/editor.main'], function () {
+      editor = monaco.editor.create(document.getElementById('editor-container'), {
+        value: codeTemplates.java,
+        language: 'java',
+        theme: 'vs-dark',
+        fontSize: 14,
+        lineNumbers: 'on',
+        roundedSelection: false,
+        scrollBeyondLastLine: false,
+        automaticLayout: true,
+        minimap: { enabled: true },
+        suggestOnTriggerCharacters: true,
+        quickSuggestions: {
+          other: true,
+          comments: true,
+          strings: true
+        },
+        parameterHints: { enabled: true },
+        wordBasedSuggestions: true,
+        contextmenu: true,
+        mouseWheelZoom: true,
+        cursorBlinking: 'blink',
+        cursorStyle: 'line',
+        fontLigatures: true,
+        renderWhitespace: 'selection',
+        rulers: [80, 120],
+        folding: true,
+        foldingStrategy: 'indentation',
+        showFoldingControls: 'always',
+        bracketPairColorization: { enabled: true }
+      });
+
+      // Enhanced auto-completion
+      monaco.languages.registerCompletionItemProvider('java', {
+        provideCompletionItems: function(model, position) {
+          const suggestions = [
+            {
+              label: 'System.out.println',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: 'System.out.println(${1:message});',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'Print a line to console'
+            },
+            {
+              label: 'for loop',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: 'for (int ${1:i} = 0; ${1:i} < ${2:length}; ${1:i}++) {\n\t${3:// code}\n}',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'For loop template'
+            },
+            {
+              label: 'if statement',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: 'if (${1:condition}) {\n\t${2:// code}\n}',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'If statement template'
+            }
+          ];
+          return { suggestions: suggestions };
+        }
+      });
+    });
+
+    // Language change handler
+    document.getElementById('language').addEventListener('change', function () {
+      const selectedLang = this.value;
+      const monacoLang = selectedLang === "javascript" ? "javascript" : selectedLang;
+      
+      monaco.editor.setModelLanguage(editor.getModel(), monacoLang);
+      editor.setValue(codeTemplates[selectedLang] || '// Start coding...');
+      
+      document.getElementById('languageIndicator').textContent = selectedLang.charAt(0).toUpperCase() + selectedLang.slice(1);
+      updateStatusIndicator('ready');
+    });
+
+    // Run code function
+    function submitCode() {
+      const code = editor.getValue();
+      const language = document.getElementById('language').value;
+      
+      if (!code.trim()) {
+        showOutput('⚠️ Please write some code first!', 'warning');
+        return;
+      }
+
+      startTime = Date.now();
+      updateStatusIndicator('running');
+      showLoading(true);
+      
+      const runBtn = document.getElementById('runBtn');
+      runBtn.disabled = true;
+      runBtn.innerHTML = '<i class="fas fa-spinner loading"></i><span>Running...</span>';
+
+      fetch('/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, language })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const executionTime = Date.now() - startTime;
+        document.getElementById('executionTime').textContent = `${executionTime}ms`;
+        
+        if (data.error) {
+          showOutput(`❌ Error:\n${data.error}`, 'error');
+          updateStatusIndicator('error');
+        } else {
+          showOutput(`✅ Output:\n${data.output || 'Program executed successfully (no output)'}`, 'success');
+          updateStatusIndicator('success');
+        }
+      })
+      .catch(error => {
+        showOutput(`🔥 Network Error:\n${error.message}`, 'error');
+        updateStatusIndicator('error');
+      })
+      .finally(() => {
+        showLoading(false);
+        runBtn.disabled = false;
+        runBtn.innerHTML = '<i class="fas fa-play"></i><span>Run Code</span>';
+      });
+    }
+
+    // Utility functions
+    function showOutput(text, type = 'info') {
+      const output = document.getElementById('output');
+      const timestamp = new Date().toLocaleTimeString();
+      
+      const colors = {
+        success: 'text-green-400',
+        error: 'text-red-400',
+        warning: 'text-yellow-400',
+        info: 'text-blue-400'
+      };
+      
+      output.className = `h-full p-4 overflow-auto text-sm bg-black font-mono whitespace-pre-wrap ${colors[type] || 'text-green-400'}`;
+      output.textContent = `[${timestamp}] ${text}`;
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function updateStatusIndicator(status) {
+      const indicator = document.getElementById('statusIndicator');
+      const colors = {
+        ready: 'bg-gray-500',
+        running: 'bg-yellow-500',
+        success: 'bg-green-500',
+        error: 'bg-red-500'
+      };
+      indicator.className = `w-2 h-2 rounded-full ${colors[status] || 'bg-gray-500'}`;
+    }
+
+    function showLoading(show) {
+      document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
+    }
+
+    function clearOutput() {
+      showOutput('Output cleared. Ready for next execution! 🧹', 'info');
+      updateStatusIndicator('ready');
+      document.getElementById('executionTime').textContent = '';
+    }
+
+    function copyOutput() {
+      const output = document.getElementById('output').textContent;
+      navigator.clipboard.writeText(output).then(() => {
+        // Show temporary feedback
+        const btn = event.target.closest('button');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check text-green-400"></i>';
+        setTimeout(() => btn.innerHTML = originalHTML, 1000);
+      });
+    }
+
+    // Resizer functionality
+    const resizer = document.getElementById('resizer');
+    let leftPanel = resizer.previousElementSibling;
+    let rightPanel = resizer.nextElementSibling;
+
+    resizer.addEventListener('mousedown', function(e) {
+      isResizing = true;
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    });
+
+    function handleMouseMove(e) {
+      if (!isResizing) return;
+      
+      const containerWidth = resizer.parentElement.offsetWidth;
+      const leftWidth = (e.clientX / containerWidth) * 100;
+      
+      if (leftWidth > 20 && leftWidth < 80) {
+        leftPanel.style.flex = `0 0 ${leftWidth}%`;
+        rightPanel.style.flex = `0 0 ${100 - leftWidth}%`;
+      }
+    }
+
+    function handleMouseUp() {
+      isResizing = false;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        submitCode();
+      }
+      if (e.ctrlKey && e.key === 'k') {
+        e.preventDefault();
+        clearOutput();
+      }
+    });
+
+    // Initialize
+    updateStatusIndicator('ready');
+  </script>
+</body>
+</html>
