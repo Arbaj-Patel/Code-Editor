@@ -312,59 +312,83 @@ public class Program {
         return;
       }
 
-      // For other languages, simulate execution
-      setTimeout(() => {
+      // For JavaScript, execute in browser
+      if (language === 'javascript') {
+        try {
+          // Create a safe evaluation environment
+          const originalConsoleLog = console.log;
+          const originalConsoleError = console.error;
+          let consoleOutput = [];
+          
+          console.log = function() {
+            consoleOutput.push(Array.from(arguments).join(' '));
+          };
+          console.error = function() {
+            consoleOutput.push('ERROR: ' + Array.from(arguments).join(' '));
+          };
+          
+          // Execute the code in a try-catch block
+          try {
+            eval(code);
+          } catch (e) {
+            consoleOutput.push(`❌ Runtime Error: ${e.message}`);
+            updateStatusIndicator('error');
+          }
+          
+          // Restore console functions
+          console.log = originalConsoleLog;
+          console.error = originalConsoleError;
+          
+          const output = consoleOutput.join('\n');
+          const executionTime = Date.now() - startTime;
+          document.getElementById('executionTime').textContent = `${executionTime}ms`;
+          
+          showOutput(output || 'Program executed successfully (no output)', consoleOutput.some(line => line.includes('ERROR:')) ? 'error' : 'success');
+          updateStatusIndicator(consoleOutput.some(line => line.includes('ERROR:')) ? 'error' : 'success');
+          showLoading(false);
+          runBtn.disabled = false;
+          runBtn.innerHTML = '<i class="fas fa-play"></i><span>Run Code</span>';
+          return;
+        } catch (e) {
+          showOutput(`❌ Execution Error: ${e.message}`, 'error');
+          updateStatusIndicator('error');
+          showLoading(false);
+          runBtn.disabled = false;
+          runBtn.innerHTML = '<i class="fas fa-play"></i><span>Run Code</span>';
+          return;
+        }
+      }
+
+      // For other languages, send to server
+      fetch('/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code, language })
+      })
+      .then(response => response.json())
+      .then(data => {
         const executionTime = Date.now() - startTime;
         document.getElementById('executionTime').textContent = `${executionTime}ms`;
         
-        let output = '';
-        let type = 'success';
-        
-        switch(language) {
-          case 'javascript':
-            try {
-              // Create a safe evaluation environment
-              const originalConsoleLog = console.log;
-              const originalConsoleError = console.error;
-              let consoleOutput = [];
-              
-              console.log = function() {
-                consoleOutput.push(Array.from(arguments).join(' '));
-              };
-              console.error = function() {
-                consoleOutput.push('ERROR: ' + Array.from(arguments).join(' '));
-              };
-              
-              // Execute the code in a try-catch block
-              try {
-                eval(code);
-              } catch (e) {
-                consoleOutput.push(`❌ Runtime Error: ${e.message}`);
-                type = 'error';
-              }
-              
-              // Restore console functions
-              console.log = originalConsoleLog;
-              console.error = originalConsoleError;
-              
-              output = consoleOutput.join('\n');
-            } catch (e) {
-              output = `❌ Execution Error: ${e.message}`;
-              type = 'error';
-            }
-            break;
-          default:
-            output = `✅ Code execution simulated for ${language}.\n\n-----------------\n`;
-            
-            output += 'Hello EPL Students';
+        if (data.error) {
+          showOutput(data.error, 'error');
+          updateStatusIndicator('error');
+        } else {
+          showOutput(data.output || 'Program executed successfully (no output)', 'success');
+          updateStatusIndicator('success');
         }
-        
-        showOutput(output || 'Program executed successfully (no output)', type);
-        updateStatusIndicator(type === 'error' ? 'error' : 'success');
+      })
+      .catch(error => {
+        showOutput(`❌ Server Error: ${error.message}`, 'error');
+        updateStatusIndicator('error');
+      })
+      .finally(() => {
         showLoading(false);
         runBtn.disabled = false;
         runBtn.innerHTML = '<i class="fas fa-play"></i><span>Run Code</span>';
-      }, 1000);
+      });
     }
 
     // Utility functions
