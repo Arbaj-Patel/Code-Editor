@@ -20,6 +20,197 @@
     .loading { animation: spin 1s linear infinite; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+
+    /* Responsive Styles */
+    @media (max-width: 768px) {
+      /* Mobile Header Adjustments */
+      header .container {
+        padding: 12px 16px;
+      }
+      
+      header h1 {
+        font-size: 1.25rem;
+        line-height: 1.3;
+      }
+      
+      header p {
+        font-size: 0.75rem;
+      }
+      
+      /* Always show language selector on mobile */
+      .header-controls {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      
+      .language-selector {
+        order: -1;
+        width: 100%;
+        margin-bottom: 8px;
+      }
+      
+      #language {
+        width: 100%;
+        padding: 8px 12px;
+        font-size: 14px;
+      }
+      
+      /* Mobile button adjustments */
+      #runBtn, .clear-btn {
+        padding: 8px 12px;
+        font-size: 14px;
+        min-height: 44px; /* Touch-friendly */
+      }
+      
+      #runBtn span, .clear-btn span {
+        display: none; /* Hide text on very small screens */
+      }
+      
+      /* Stack layout vertically on mobile */
+      .main-content {
+        flex-direction: column;
+        height: calc(100vh - 120px); /* Adjusted for larger header */
+      }
+      
+      .editor-panel, .output-panel {
+        flex: 1;
+        min-height: 50%;
+      }
+      
+      .editor-container, .output-container {
+        height: calc(50vh - 100px);
+      }
+      
+      /* Hide resizer on mobile */
+      .resizer {
+        display: none;
+      }
+      
+      /* Mobile panel headers */
+      .panel-header {
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+      
+      .panel-header .text-xs {
+        display: none;
+      }
+      
+      /* Monaco editor mobile optimizations */
+      .monaco-editor {
+        font-size: 12px !important;
+      }
+      
+      /* Output text mobile optimization */
+      #output {
+        font-size: 12px;
+        padding: 12px;
+        line-height: 1.4;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      /* Extra small screens */
+      header .container {
+        padding: 8px 12px;
+      }
+      
+      .header-title {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .header-title .w-10 {
+        width: 32px;
+        height: 32px;
+      }
+      
+      header h1 {
+        font-size: 1.1rem;
+      }
+      
+      header p {
+        display: none; /* Hide subtitle on very small screens */
+      }
+      
+      /* Smaller buttons for very small screens */
+      #runBtn, .clear-btn {
+        padding: 6px 8px;
+        min-width: 44px;
+      }
+      
+      .editor-container, .output-container {
+        height: calc(45vh - 80px);
+      }
+      
+      #output {
+        font-size: 11px;
+        padding: 8px;
+      }
+    }
+    
+    @media (min-width: 769px) and (max-width: 1024px) {
+      /* Tablet adjustments */
+      .editor-container, .output-container {
+        height: calc(100vh - 90px);
+      }
+      
+      #language {
+        min-width: 120px;
+      }
+      
+      /* Adjust resizer for tablet */
+      .resizer {
+        width: 6px;
+      }
+    }
+    
+    @media (min-width: 1025px) {
+      /* Desktop - keep original layout */
+      .main-content {
+        flex-direction: row;
+      }
+    }
+    
+    /* Touch device optimizations */
+    @media (hover: none) and (pointer: coarse) {
+      /* Touch devices */
+      button, select {
+        min-height: 44px;
+        min-width: 44px;
+      }
+      
+      .resizer {
+        width: 8px; /* Wider for touch */
+      }
+      
+      .resizer:hover {
+        background: #6366f1;
+      }
+    }
+    
+    /* Landscape mobile optimization */
+    @media (max-width: 768px) and (orientation: landscape) {
+      .main-content {
+        flex-direction: row;
+      }
+      
+      .resizer {
+        display: block;
+        width: 6px;
+      }
+      
+      .editor-container, .output-container {
+        height: calc(100vh - 100px);
+      }
+    }
+    
+    /* High DPI displays */
+    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+      .monaco-editor {
+        font-size: 13px !important;
+      }
+    }
   </style>
 </head>
 <body class="bg-gray-900 text-white font-mono">
@@ -27,7 +218,7 @@
   <header class="gradient-bg shadow-lg">
     <div class="container mx-auto px-6 py-4">
       <div class="flex justify-between items-center">
-        <div class="flex items-center space-x-3">
+        <div class="flex items-center space-x-3 header-title">
           <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
             <i class="fas fa-code text-purple-600 text-xl"></i>
           </div>
@@ -37,17 +228,17 @@
           </div>
         </div>
         
-        <div class="flex items-center space-x-4">
-          <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-4 header-controls">
+          <div class="flex items-center space-x-2 language-selector">
             <i class="fas fa-code-branch text-purple-200"></i>
             <select id="language" class="bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent">
               <option value="java">Java</option>
-              <option value="c"> C</option>
+              <option value="c">C</option>
               <option value="python">Python</option>
-              <option value="cpp"> C++</option>
-              <option value="csharp">  C#</option>
-              <option value="html"> HTML</option>
-              <option value="javascript"> JavaScript</option>
+              <option value="cpp">C++</option>
+              <option value="csharp">C#</option>
+              <option value="html">HTML</option>
+              <option value="javascript">JavaScript</option>
             </select>
           </div>
           
@@ -56,8 +247,9 @@
             <span>Run Code</span>
           </button>
           
-          <button onclick="clearOutput()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-all duration-200">
-            <i class="fas fa-trash"></i> Clear
+          <button onclick="clearOutput()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-all duration-200 clear-btn">
+            <i class="fas fa-trash"></i> 
+            <span>Clear</span>
           </button>
         </div>
       </div>
@@ -65,10 +257,10 @@
   </header>
 
   <!-- Main Content -->
-  <div class="flex h-full">
+  <div class="flex h-full main-content">
     <!-- Code Editor Panel -->
-    <div class="flex-1 bg-gray-900 border-r border-gray-700">
-      <div class="bg-gray-800 px-4 py-2 border-b border-gray-700 flex items-center justify-between">
+    <div class="flex-1 bg-gray-900 border-r border-gray-700 editor-panel">
+      <div class="bg-gray-800 px-4 py-2 border-b border-gray-700 flex items-center justify-between panel-header">
         <div class="flex items-center space-x-2">
           <i class="fas fa-file-code text-blue-400"></i>
           <span class="text-sm font-medium">Code Editor</span>
@@ -86,8 +278,8 @@
     <div class="resizer" id="resizer"></div>
 
     <!-- Output Panel -->
-    <div class="flex-1 bg-gray-900 flex flex-col">
-      <div class="bg-gray-800 px-4 py-2 border-b border-gray-700 flex items-center justify-between">
+    <div class="flex-1 bg-gray-900 flex flex-col output-panel">
+      <div class="bg-gray-800 px-4 py-2 border-b border-gray-700 flex items-center justify-between panel-header">
         <div class="flex items-center space-x-2">
           <i class="fas fa-terminal text-green-400"></i>
           <span class="text-sm font-medium">Output</span>
@@ -186,19 +378,27 @@ public class Program {
   javascript: `console.log("Hello EPL Students");`
 };
 
-    // Initialize Monaco Editor
+    // Check if mobile device
+    function isMobileDevice() {
+      return window.innerWidth <= 768;
+    }
+
+    // Initialize Monaco Editor with responsive settings
     require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor/min/vs' }});
     require(['vs/editor/editor.main'], function () {
+      const isMobile = isMobileDevice();
+      
       editor = monaco.editor.create(document.getElementById('editor-container'), {
         value: codeTemplates.java,
         language: 'java',
         theme: 'vs-dark',
-        fontSize: 14,
+        fontSize: isMobile ? 12 : 14,
         lineNumbers: 'on',
         roundedSelection: false,
         scrollBeyondLastLine: false,
         automaticLayout: true,
-        minimap: { enabled: true },
+        minimap: { enabled: !isMobile },
+        wordWrap: isMobile ? 'on' : 'off',
         suggestOnTriggerCharacters: true,
         quickSuggestions: {
           other: true,
@@ -213,7 +413,7 @@ public class Program {
         cursorStyle: 'line',
         fontLigatures: true,
         renderWhitespace: 'selection',
-        rulers: [80, 120],
+        rulers: isMobile ? [] : [80, 120],
         folding: true,
         foldingStrategy: 'indentation',
         showFoldingControls: 'always',
@@ -248,6 +448,17 @@ public class Program {
           ];
           return { suggestions: suggestions };
         }
+      });
+
+      // Handle window resize for responsive editor
+      window.addEventListener('resize', function() {
+        const isMobile = isMobileDevice();
+        editor.updateOptions({
+          fontSize: isMobile ? 12 : 14,
+          minimap: { enabled: !isMobile },
+          wordWrap: isMobile ? 'on' : 'off',
+          rulers: isMobile ? [] : [80, 120]
+        });
       });
     });
 
@@ -440,15 +651,23 @@ public class Program {
       });
     }
 
-    // Resizer functionality
+    // Enhanced resizer functionality for touch devices
     const resizer = document.getElementById('resizer');
     let leftPanel = resizer.previousElementSibling;
     let rightPanel = resizer.nextElementSibling;
 
+    // Mouse events
     resizer.addEventListener('mousedown', function(e) {
       isResizing = true;
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
+    });
+
+    // Touch events for mobile
+    resizer.addEventListener('touchstart', function(e) {
+      isResizing = true;
+      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchend', handleTouchEnd);
     });
 
     function handleMouseMove(e) {
@@ -463,10 +682,30 @@ public class Program {
       }
     }
 
+    function handleTouchMove(e) {
+      if (!isResizing) return;
+      e.preventDefault();
+      
+      const touch = e.touches[0];
+      const containerWidth = resizer.parentElement.offsetWidth;
+      const leftWidth = (touch.clientX / containerWidth) * 100;
+      
+      if (leftWidth > 20 && leftWidth < 80) {
+        leftPanel.style.flex = `0 0 ${leftWidth}%`;
+        rightPanel.style.flex = `0 0 ${100 - leftWidth}%`;
+      }
+    }
+
     function handleMouseUp() {
       isResizing = false;
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+    }
+
+    function handleTouchEnd() {
+      isResizing = false;
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
     }
 
     // Keyboard shortcuts
